@@ -1,10 +1,11 @@
 const express = require('express');
-const tourController = require('../controllers/tourController');
 const router = express.Router();
+const tourController = require('../controllers/tourController');
 
-router.param('id', tourController.checkID);
+/* We cannot put this route below '/:id' route because Express will think that 'top-5-cheap' is the value of ':id' parameter. Must be CAREFUL!*/
+router.route('/top-5-cheap').get(tourController.aliasTopTours, tourController.getAllTours);
 
-router.route('/').get(tourController.getAllTours).post(tourController.checkBody, tourController.createTour);
+router.route('/').post(tourController.createTour).get(tourController.getAllTours);
 
 router.route('/:id').get(tourController.getTour).patch(tourController.updateTour).delete(tourController.deleteTour);
 

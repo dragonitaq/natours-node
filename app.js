@@ -1,6 +1,4 @@
-// const { json } = require('express');
 const morgan = require('morgan');
-
 const tourRouter = require('./routes/tourRoutes');
 const userRouter = require('./routes/userRoutes');
 
@@ -11,9 +9,7 @@ const app = express();
 // The shorthand is as below:
 // const app = require('express')();
 
-/* ############################### Middleware ############################### */
-
-/* This is the middleware where all the requests will go through for processing. The order of code matters! */
+/* REMEMBER: When we want middleware to run for EVERY request (no matter what route), we use app.use() and put it into this app.js file. */
 
 /* This is third party middleware.
 morgan doesn't log to the console until the response is sent back to the client. That is why we see it log at last in console even it runs first. We can change that in morgan's settings though.
@@ -23,7 +19,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 /* This is built-in middleware.
-In this step, we add the data from the body to the request object. In another word, the express.json() middleware parses the JSON into a JavaScript object and puts it on req.body.
+In this step, we add the data from the body (JSON) to JS object. In another word, the express.json() middleware parses the JSON into a JavaScript object and puts it on req.body.
 Express.json() and body-parser are the same. */
 app.use(express.json());
 
@@ -45,35 +41,9 @@ app.use((req, res, next) => {
 
 /* ########################## HTTP routes / methods ######################### */
 
-// z is optional in this case: '/api/v1/tours/:x/:y/:z?'
-
-// app.get('/api/v1/tours', getAllTours);
-// app.get('/api/v1/tours/:id', getTour);
-// app.post('/api/v1/tours', createTour);
-// app.patch('/api/v1/tours/:id', updateTour);
-// app.delete('/api/v1/tours/:id', deleteTour);
-
-// app.route('/api/v1/tours').get(getAllTours).post(createTour);
-// app.route('/api/v1/tours/:id').get(getTour).patch(updateTour).delete(deleteTour);
-// app.route('/api/v1/users').get(getAllUsers).post(createUser);
-// app.route('/api/v1/users/:id').get(getUser).patch(updateUser).delete(deleteUser);
-
-/* We perform something here call Mounting Router. This is also called sub application.
-This is indeed a middleware to handle routing.
-In my own words, route, just like the one we have at home, is routing route to the direction we specify. In this case, when the req hit the specify route we specify in app.use(), then we route it to our desire route. */
-
 /* Here tourRouter is the router object that we exported from the tourRoutes.js file. Same goes to userRouter. We are mounting a new router, Router() on a route, '/api/v1/tours'
 Another words, we "mounted" the tourRouter onto the '/api/v1/tours route' */
 app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
 
 module.exports = app;
-
-/* ################################## Note ################################## */
-
-/*
-Middleware allows you to call a function for each request that comes in. The alternative would be to call the function in a controller, but then you have to repeat it in every controller. Middleware lets you define it in a single place and have all the requests pass through it.
-
-req-res cycle ends immediately right after whenever we send something with res. Any code down the line to handle that req-res will not apply.
-
-*/

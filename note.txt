@@ -1,0 +1,23 @@
+What is the difference between using pagination in Front-end and Back-end?
+
+The need of pagination on front-end/back-end have different purposes: Basically backend tends to improve performance and resource usage while front-end improves user experience/usability. The pagination on both not necessarily are mutually exclusive and its need should be evaluated per scenario.
+
+Imagine a scenario for a "resource" which has a dataset of 100 elements with simple attributes each element.. It would be totally fine to not have pagination on backend and leave it up to the front end to present and do the pagination. But for example, an api for retrieve all books of a library with hundreds of thousands of book available... It can be bad for the backend/infrastructure/frontend to try to manage all this dataset at once.. 
+
+As mentioned before they are not mutually exclusive and you make usage for both so for example.. we have a service with 200 elements available and the backend pagination of limit of 50 per request (total of 4 "pages").. but in your front end you want to present only 10 elements at a time, so your front end can get the 50 initial one, display 10 and keep some in memory.. so it would need to get more elements from page 6.. of course it add some more complexity and the frontend need to manage well this logic to know when it need to get resource or if is available to display any page. But it can happen. And even the other way around.. where the front end needs to present 100 at time, so it would need to make 2 requests to the backend for each "fronted page".
+
+The pagination on the backend just specify how it will return the data (in chunks).. the frontend presentation should adequate and manage its usage to fulfil its need.
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+req.body is the main body content (not header) we receive, normally in JSON format, but it can also be text. We normally use app.use(express.json()); to convert JSON into JS object.
+
+req.query is the URL that start with ? follow by query parameters.
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+Middleware allows you to call a function for each request that comes in. The alternative would be to call the function in a controller, but then you have to repeat it in every controller. Middleware lets you define it in a single place and have all the requests pass through it.
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+req-res cycle ends immediately right after whenever we send something with res. Any code down the line to handle that req-res will not apply.
