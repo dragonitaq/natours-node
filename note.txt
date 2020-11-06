@@ -21,3 +21,52 @@ Middleware allows you to call a function for each request that comes in. The alt
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
 
 req-res cycle ends immediately right after whenever we send something with res. Any code down the line to handle that req-res will not apply.
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+this.query = this.query.find(JSON.parse(queryStr));
+What does this line of code do actually?
+
+Jonas' reply:
+
+So, the APIFeatures class expects a mongoose query object as an input. The way we create a query object is by creating a query with Tour.find(), but not executing the query right away, so not using await on it (in case we're using async/await like we do in the course).
+
+Again, by doing this, we end up with a query object onto which we can then chain other methods, such as sort, or another find, as you posted in your example:
+
+this.query.find(JSON.parse(queryStr))
+
+Keep in mind that here, inside the class, this.query is the query object we created in the beginning, so it's like having:
+
+Tour.find().find(JSON.parse(queryStr))
+
+And yes, that is totally acceptable. Again, because the query has not yet executed, it didn't return the actual results yet. That's what we do in the end, which is the reason why in the end we have to use
+
+const tours = await features.query;
+
+My own word:
+
+Tour.find().find(JSON.parse(queryStr))
+
+Tour.find() return a query object, and then we manipulate it. This query object is then execute another find() method with parameters of JSON.parse(queryStr) in which it will return another new query object too.
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+We can define functions on the schema. Refer here:
+https://mongoosejs.com/docs/guide.html#methods
+But cannot declare the function using ES6 => arrow function.
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+Sub-documents are documents embedded in other documents. In Mongoose, this means you can nest schemas in other schemas. Mongoose has two distinct notions of sub-documents: arrays of sub-documents and single nested sub-documents.
+
+const childSchema = new Schema({ name: 'string' });
+
+const parentSchema = new Schema({
+  // Array of sub-documents
+  children: [childSchema],
+  // Single nested sub-documents
+  child: childSchema,
+});
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+About client vs server side validator, we should have both. But the must-have validation is on the server. The client-side validation just provides a better user experience so they don't have to reload the page to know what they did wrong.

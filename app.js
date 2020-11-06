@@ -19,7 +19,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 /* This is built-in middleware.
-In this step, we add the data from the body (JSON) to JS object. In another word, the express.json() middleware parses the JSON into a JavaScript object and puts it on req.body.
+In this step, we convert the data from the body (JSON) to JS object. In another word, the express.json() middleware parses the JSON into a JavaScript object and puts it on req.body.
 Express.json() and body-parser are the same. */
 app.use(express.json());
 
