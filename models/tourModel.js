@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const slugify = require('slugify');
+// const slugify = require('slugify');
 const validator = require('validator');
 
 // We can use set timestamps to true which will automatically create 2 fields: createdAt and updatedAt.
@@ -13,7 +13,7 @@ const tourSchema = new mongoose.Schema(
       // This will remove all white space at the beginning & ending of the string.
       trim: true,
       maxlength: [40, 'A tour name must have less or equal than 40 characters'],
-      minlength: [40, 'A tour name must have more or equal than 10 characters'],
+      minlength: [10, 'A tour name must have more or equal than 10 characters'],
       validate: {
         validator: function (val) {
           return validator.isAlpha(val.split(' ').join(''));
@@ -22,7 +22,7 @@ const tourSchema = new mongoose.Schema(
       },
     },
     // For testing document middleware purpose
-    slug: String,
+    // slug: String,
     duration: {
       type: Number,
       required: [true, 'A tour must have a duration'],
@@ -154,27 +154,26 @@ The 'save' is called hook. We also can call this as pre-save hook middleware. We
 /* ####################### Query middleware ####################### */
 
 // /^find/ is regex denotes all strings start with 'find'. This will include findOne(), findById(), findOneAndDelete(), findOneAndUpdate().
-tourSchema.pre(/^find/, function (next) {
-  /* Mongoose will auto set "secretTour": false because this is how it works. It will try to populate all default data when returning resulting document, but in our actual db, there is no secretTour field if we don't set it. */
-  this.find({ secretTour: { $ne: true } });
-  /* this keyword points to the query object. Unlike document middleware, we cannot simply add property of slug without setting it up in our model because it is an document. However, we can add start property right in here because this points to a query object */
-  this.start = Date.now();
-  next();
-});
+// tourSchema.pre(/^find/, function (next) {
+//   /* Mongoose will auto set "secretTour": false because this is how it works. It will try to populate all default data when returning resulting document, but in our actual db, there is no secretTour field if we don't set it. */
+//   this.find({ secretTour: { $ne: true } });
+//   /* this keyword points to the query object. Unlike document middleware, we cannot simply add property of slug without setting it up in our model because it is an document. However, we can add start property right in here because this points to a query object */
+//   this.start = Date.now();
+//   next();
+// });
 
-tourSchema.post(/^find/, function (doc, next) {
-  console.log(doc);
-  /* We can access this keyword because it still points to query object. This is special for query middleware. */
-  console.log(`Query took ${Date.now() - this.start} milliseconds!`);
-  next();
-});
+// tourSchema.post(/^find/, function (doc, next) {
+//   /* We can access this keyword because it still points to query object. This is special for query middleware. */
+//   console.log(`Query took ${Date.now() - this.start} milliseconds!`);
+//   next();
+// });
 
 /* #################### Aggregation middleware #################### */
 
-tourSchema.pre('aggregate', function (next) {
-  this.pipeline().unshift({ $match: { secretTour: { $ne: true } } });
-  next();
-});
+// tourSchema.pre('aggregate', function (next) {
+//   this.pipeline().unshift({ $match: { secretTour: { $ne: true } } });
+//   next();
+// });
 
 /* We use capital T for Tour because that is convention for model in mongoose. I think the reason is because it serves as a document constructor to create document.
   We should use singular name for the first argument for our collection, then mongoose will turn it into a lowercase plural version ("tours", in this case)

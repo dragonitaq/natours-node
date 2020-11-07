@@ -1,4 +1,6 @@
 const morgan = require('morgan');
+const AppError = require('./utils/appError');
+const globalErrorHandler = require('./controllers/errorController');
 const tourRouter = require('./routes/tourRoutes');
 const userRouter = require('./routes/userRoutes');
 
@@ -28,16 +30,17 @@ app.use(express.static(`${__dirname}/public`));
 
 /* This is our own middleware.
 MUST use next() in all the middleware. If not, the middleware will stuck in process. */
-app.use((req, res, next) => {
-  console.log('Hello from middleware!');
-  next();
-});
+// app.use((req, res, next) => {
+//   console.log('Hello from middleware!');
+//   next();
+// });
 
-app.use((req, res, next) => {
-  req.requestTime = new Date().toISOString();
-  console.log(req.requestTime);
-  next();
-});
+// Here we just inject extra info which is the request time into req object in middleware.
+// app.use((req, res, next) => {
+//   req.requestTime = new Date().toISOString();
+//   console.log(req.requestTime);
+//   next();
+// });
 
 /* ########################## HTTP routes / methods ######################### */
 
@@ -45,5 +48,19 @@ app.use((req, res, next) => {
 Another words, we "mounted" the tourRouter onto the '/api/v1/tours route' */
 app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
+
+/* We MUST place these code at the last order of our routes. Because this is where we accept all unhandled URL. */
+app.all('*', (req, res, next) => {
+  // const err = new Error(`Can't find ${req.originalUrl}`); // This become the err.message
+  // err.statusCode = 404;
+  // err.status = 'fail';
+
+  /* If a next function receive any argument, Express will immediate knows and treats it as an error for any subsequent next(). Thus it will skip all the next() and send the error to our global error handling middleware. */
+  next(new AppError(`Can't find ${req.originalUrl}`, 404));
+});
+
+/* ##################### Global error handler ##################### */
+
+app.use(globalErrorHandler);
 
 module.exports = app;

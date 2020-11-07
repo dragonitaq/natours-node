@@ -70,3 +70,57 @@ const parentSchema = new Schema({
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
 
 About client vs server side validator, we should have both. But the must-have validation is on the server. The client-side validation just provides a better user experience so they don't have to reload the page to know what they did wrong.
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+Error stack / Error stack trace is information that shows us where the error happened.
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+Difference between findByIdAndDelete VS findByIdAndRemove
+
+We should use findByIdAndDelete and not findByIdAndRemove unless you have a good reason not to.
+findOneAndRemove returns the removed document so if you remove a document that you later decide should not be removed, you can insert it back into the db.
+This can be useful too. For example your user wants to delete his account but u need to delete user information too then u can use findOneAndRemove() and then u can delete it on users table and after that u can add to another table as "deletedUser".
+If we want to response a delete successful message to the client, then we need to change the status code, because no matter what message you send, status code 204 will hide all of it.
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+There are two possible errors regarding mongoose id validation.
+
+1. Mongoose try to convert a random string in a valid objectId. If failed, then the ID is malformed so findById will reject it.
+-> Cast to ObjectId failed for value
+
+2. The ID is properly formatted, but it doesn't exist in the database.
+-> findById() returns null.
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+When handling errors in our async/await function, if use the keyword 'throw', it also yields the same result since catchAsync function already has a catch block. But this is not a good practice principle.
+
+The reason we pass errors down to the global error handling middleware by passing an error to next() is because that's how Express designed to work. We should follow the pattern that Express created for us because that pattern is the philosophy of middleware.
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+3 types of mongoose error:
+1) Invalid id (cast to objectId error)
+2) Duplicate key error (key value must be unique.)
+3) Validation error (general data model schema validation error)
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+As for as I can tell, whenever Mongoose throws an error, it has its name property. Whereas, when Mongo throws an error, it has its code property.
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+There are more things can do in error handling, we can define different error severity levels like not important, medium, very important and critical. Then we get warn or contact differently base on severity.
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+We should not always rely on process.on('unhandledRejection') or process.on('uncaughtException') to handle our errors. We should always handle errors case by case basic. Only those errors that we can't think of or never expected, the only they go in there because that is our last safety net.
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+In real life scenario, you do not push buggy code to production. You develop on your local machine and push it to DEVELOPMENT environment. You test your newly added feature there as well. After that, QA tester will test your changes on STAGING environment. After QA tester confirms that everything is OK, then you will push to PRODUCTION environment.
+
+In case some bugs are still on PRODUCTION. Then, you will have to revert the new deployment to previous version that does not have any bug.
