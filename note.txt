@@ -86,6 +86,10 @@ If we want to response a delete successful message to the client, then we need t
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
 
+.save() in Mongoose is known as an "upsert" meaning if the document doesn't already exist, it creates it and if it already exists then it updates it. findOneAndUpdate just updates the first document that matches the query provided.
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
 There are two possible errors regarding mongoose id validation.
 
 1. Mongoose try to convert a random string in a valid objectId. If failed, then the ID is malformed so findById will reject it.
@@ -124,3 +128,141 @@ We should not always rely on process.on('unhandledRejection') or process.on('unc
 In real life scenario, you do not push buggy code to production. You develop on your local machine and push it to DEVELOPMENT environment. You test your newly added feature there as well. After that, QA tester will test your changes on STAGING environment. After QA tester confirms that everything is OK, then you will push to PRODUCTION environment.
 
 In case some bugs are still on PRODUCTION. Then, you will have to revert the new deployment to previous version that does not have any bug.
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+In MVC architecture, we always keep the model fat and the controller thin.
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+In JSON Web Token, we are using standard HSA 256 encryption for the signature, the secret key should at least be 32 characters long. In fact, the longer the better.
+
+For JWT_EXPIRES_IN=90d, we can actually specify like this: 90d 12h 30m 15s
+If there is not unit specify, JWT will simply treat it as milliseconds.
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+There is a way to auto generate strong JWT secret key. We can use the built-in node's crypto hash. To use, run the code in the terminal
+
+node -e "console.log(require('crypto').randomBytes(256).toString('base64'));"
+
+OR
+
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'));"
+
+Your auto-generated secret key will be something like this:
+lnswEoBC9v3UqNsciC0FGcVotgJrms9cCKCM+b0af7EwjC2+nVB88V2kjztyas3C0IOCz+CTulpYo7Y4Ti24RoUMixZBw3luMhepgMaKvOiOabrM2noAtPrH7vEHgEWccHwFDH0rOoEVj/kGYtk2I+/sUBb92JM1hhODdibJ0ZJtu8RKGk1Xc+deuofvEQTfP2MxGv49DQ5Fjdq43EfW9vUF+W7laNsx875SVAZQXQeg69DInNKa5LNBkrOXfo1I3BarXwkMr9olLy9CvxPyyQubpo9yYpE6J7K/j/Fz3lRi39Rc0po1R8dLZcQVH96egwtceOmvHno3YhpE8piDZA
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+To verify our jwt token, we can go to jwt.io and here are the steps to follow:
+
+1. Create a JWT with your app.
+
+2. Paste the JWT into jwt.io. You will see that it says "Invalid Signature" at the bottom.
+
+3. Paste your JWT secret into the blue "verify signature" section on the right-hand side and the signature should be verified.
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+.save() in Mongoose is known as an "upsert" meaning if the document doesn't already exist, it creates it and if it already exists then it updates it. findOneAndUpdate just updates the first document that matches the query provided.
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+I was confused by how the app detect changes if the password is encrypted. Then I understand that all password fetch from db is encrypted, when we receive req from user where they do changes (reset password) on client side, then we can detect the encrypted password change to plain text, thus we only then encrypt it. What if hacker get hands on encrypted password? There is no use for them because in correctPassword(), we verify it by again encrypt the input password. If the input is the correct encrypted password, then the double-encrypted result will be different thus the comparison will fail. Only when we encrypt the original not-encrypted plain text, which is input by normal user, then only the comparison will return true.
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+According to Mongoose documentation:
+"When you create a new document with the automatically added _id property, Mongoose creates a new _id of type ObjectId to your document."
+
+Every document created with Mongoose has an "_id" property. Every result of query (like User.findById(decoded.id) ) is a special object (often called document) which has the getter method .id that convert the value (hexadecimal) of ._id property to .id so that's why we can use .id and _.id interchangeably. (until it's converted the other formats. Then the _.id or .id will stay the way it is.
+
+In a nutshell, Mongoose provides an alias for _id through id. Either one works here.
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+https://www.udemy.com/course/nodejs-express-mongodb-bootcamp/learn/lecture/15065338#questions/8300274
+
+The link above are for tips on how to security for:
+1) how to blacklist JWT
+
+2) confirm user email address after first creating account
+
+3) implement two-factor authentication.
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+Regarding creating expiring cookie:
+
+expires: new Date(Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000),
+
+Date.now() method returns the number of milliseconds elapsed since January 1, 1970 00:00:00 UTC.
+
+Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
+// Will return total milliseconds.
+
+new Date(Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000)
+// Will return a formatted date based on the milliseconds.
+
+Generating cookie in Express needs formatted date.
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+jwt received from the server after user authentication can be saved either in local storage or in cookie. If you avoid storing jwt in cookie, there is only browser's local storage is available to store jwt which is more vonurable to XXS attacks and CRSF attacks because attacker can easily get access to local storage. Therefore, storing jwt in cookie is a better option with httpOnly and secure options.
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+You must not use Regular cookies with JWTS (because regular cookies are stored on the users computer and can be easily hacked), from what I have learnt you need a Special HTTP ONLY Cookie to be used with the JWT  (a cookie that is not stored on the users computer), 
+
+Regular Cookies are also vulnerable to XSS attacks these attacks are not an issue if you are using JWT with HTTP ONLY Cookies.
+
+https://stackoverflow.com/questions/35313384/jwt-cookies-https-csrf
+
+If you are storing sensitive information in the JWT it can be encrypted (Regular cookies can't be encrypted).
+
+https://dzone.com/articles/cookies-vs-tokens-the-definitive-guide
+
+Regular Cookies must not be used in a REST API as a REST API is stateless (Meaning that all the user Authentication, Authorization data etc. is stored in the Request).
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+To do simulate NoSQL injection, use JSON like below:
+{
+    "email": {"$gt": ""},
+    "password": "pass1234"
+}
+
+In our code:
+const user = await User.findOne({ email }).select('+password');
+
+Thus it basically translate into {"email": {"$gt": ""}} which is a valid Mongo query syntax.
+However, it will return the first user it finds with email in alphabetical order then its numbering order, in this case it's 'admin@jonas.io' in the db. Thus, it only works if password is matched with the first returned user's password in the collection from findOne().
+
+However, in other case if it uses other find method like find(), it will return ALL the users form the collection and then matching the input password with all the users' password. It will then be very likely they get authorized because getting common password is not hard. It will be dangerous. 
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+In URL, if we input query with multiple identical fields, Express will return then in an array with their values. However, sometimes, our code is not written to handle array for fields which are not meant to. So we prevent it using HPP npm package. HPP will remove all front duplicated query fields and only preserve the last one.
+
+We can whitelist some parameters like below:
+app.use(
+  hpp({
+    whitelist: ['duration', 'ratingsQuantity', 'ratingsAverage', 'maxGroupSize', 'difficulty', 'price'],
+  })
+);
+
+When the whitelist grows bigger, we need to implement some function where we can store the desire fields into it an array variable.
+
+Adam, the teaching assistant suggested this:
+There's no clean way to do that. You'll need to either write them manually or create the schema object in another file and run some code to extract the keys you want. After that, you can export the schema object to the model file and call mongoose.model on it.
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+To further the security knowledge, here are some resources.
+
+OWASP, a foundation that establishes the standards for Open Web Application Security Projects. They have tools that help us to simulate attacks on our own projects to prove different vulnerabilities and gives advice on how to solve it.
+https://www.owasp.org/index.php/Main_Page
+
+Express itself has page to recommend security practices
+http://expressjs.com/en/advanced/best-practice-security.html

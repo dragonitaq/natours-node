@@ -67,6 +67,8 @@ exports.getTour = catchAsync(async (req, res, next) => {
 
   if (!tour) {
     return next(new AppError('No tour found with that ID', 404));
+    /* We have the option to redirect user to home route if the request params are not valid. */
+    // return res.redirect('/');
   }
 
   res.status(200);

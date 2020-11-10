@@ -3,15 +3,33 @@ const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
 const tourRouter = require('./routes/tourRoutes');
 const userRouter = require('./routes/userRoutes');
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
+const mongoSanitize = require('express-mongo-sanitize');
+const xss = require('xss-clean');
 
 // First we store the express into const express.
 const express = require('express');
+const { parseConnectionUrl } = require('nodemailer/lib/shared');
+const { sanitize } = require('express-mongo-sanitize');
 // Then we execute the express function which in return starts our application.
 const app = express();
 // The shorthand is as below:
 // const app = require('express')();
 
+/* @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ */
+/*                         Global middleware                        */
+/* @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ */
+
 /* REMEMBER: When we want middleware to run for EVERY request (no matter what route), we use app.use() and put it into this app.js file. */
+
+/* ################### Set security HTTP headers ################## */
+
+/* In app.use(), we should only put in function but not executing it. In this case, helmet() will return a function that will be waiting to be called.
+Use helmet as early as possible in middle to ensure secure headers to be set. */
+app.use(helmet());
+
+/* ###################### Development logging ##################### */
 
 /* This is third party middleware.
 morgan doesn't log to the console until the response is sent back to the client. That is why we see it log at last in console even it runs first. We can change that in morgan's settings though.
@@ -20,13 +38,56 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
+/* ####################### Limiting request ####################### */
+
+/* This is to prevent DOS attack. In reality, we need to play around with these number to adapt to our app's nature.
+IMPORTANT: Whenever we reboot the app, these counters will reset! */
+const limiter = rateLimit({
+  max: 100,
+  windowMS: 60 * 60 * 1000,
+  message: 'Too many request from this IP',
+});
+/* We have the option to specify which route has the limiter in place. */
+app.use('/api', limiter);
+
+/* ########################## Body parser ######################### */
+
 /* This is built-in middleware.
-In this step, we convert the data from the body (JSON) to JS object. In another word, the express.json() middleware parses the JSON into a JavaScript object and puts it on req.body.
-Express.json() and body-parser are the same. */
-app.use(express.json());
+In this step, we convert the data from the body (JSON) to JS object. In another word, the express.json() middleware parses the JSON into a JavaScript object and puts it on req.body. Express.json() and body-parser are the same.
+We set the limit of data from the body only can have max of 10kb. */
+app.use(express.json({ limit: '10kb' }));
+
+// We start sanitization only after we parse into JS object.
+
+/* ############## Sanitize for NoSQL query injection ############## */
+
+/* It will read request body, request query string, request params and filter out all dollar and dot signs. */
+
+app.use(mongoSanitize());
+
+/* ####################### Sanitize for XSS ####################### */
+
+/* This will prevent user input malicious HTML code with some JS script inside and later inject into our HTML site, which can cause damage. It prevents by convert html symbols into non-HTML symbols.
+It will convert from this "<div id='bad-code'>Name</div>" to this "&lt;div id='bad-code'>Name&lt;/div>" */
+
+app.use(xss());
+
+/* ################# Prevent parameters pollution ################# */
+
+/* We should use this by the end because it is to clear up query string. */
+
+app.use(
+  hpp({
+    whitelist: ['duration', 'ratingsQuantity', 'ratingsAverage', 'maxGroupSize', 'difficulty', 'price'],
+  })
+);
+
+/* ###################### Serve static files ###################### */
 
 /* Method to serve static folder which is not from a route. */
 app.use(express.static(`${__dirname}/public`));
+
+/* ###################### Testing middleware ###################### */
 
 /* This is our own middleware.
 MUST use next() in all the middleware. If not, the middleware will stuck in process. */
@@ -42,7 +103,9 @@ MUST use next() in all the middleware. If not, the middleware will stuck in proc
 //   next();
 // });
 
-/* ########################## HTTP routes / methods ######################### */
+/* @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ */
+/*                       HTTP routes / methods                      */
+/* @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ */
 
 /* Here tourRouter is the router object that we exported from the tourRoutes.js file. Same goes to userRouter. We are mounting a new router, Router() on a route, '/api/v1/tours'
 Another words, we "mounted" the tourRouter onto the '/api/v1/tours route' */
@@ -59,7 +122,9 @@ app.all('*', (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl}`, 404));
 });
 
-/* ##################### Global error handler ##################### */
+/* @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ */
+/*                       Global error handler                       */
+/* @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ */
 
 app.use(globalErrorHandler);
 

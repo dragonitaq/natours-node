@@ -1,5 +1,6 @@
 /* This is brilliant implementation by Joans using JS closures.
-This function can wrap all async/await function and catch its error here without rely on try/catch block */
+This function can wrap all async/await function and catch its error here without rely on try/catch block
+However, this function is only meant for Express route handlers because it return an uncalled function. If you want it to call its function immediately, use the general catchAsync version*/
 
 module.exports = (fn) => {
   // We return a new anonymous function which then be assigned to createTour. Because we want to leave the calling to our router.

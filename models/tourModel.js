@@ -12,8 +12,8 @@ const tourSchema = new mongoose.Schema(
       unique: [true],
       // This will remove all white space at the beginning & ending of the string.
       trim: true,
-      maxlength: [40, 'A tour name must have less or equal than 40 characters'],
-      minlength: [10, 'A tour name must have more or equal than 10 characters'],
+      maxlength: [40, 'A tour name must have less than or equal to 40 characters'],
+      minlength: [10, 'A tour name must have more than or equal to 10 characters'],
       validate: {
         validator: function (val) {
           return validator.isAlpha(val.split(' ').join(''));
