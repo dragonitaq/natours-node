@@ -59,9 +59,12 @@ exports.getTour = catchAsync(async (req, res, next) => {
   //   }
   // });
 
-  const tour = await Tour.findById(req.params.id);
-  // The above will do the same thing as below.
-  // Tour.findOne({ _id: req.params.id });
+  /* Using .populate() is indeed a new query action on top of any find methods. Beware of its performance.
+  If we want to include every fields we use .populate('guides'); If we want to exclude specified field then:
+  .populate({path: 'guides', select: '-__v -passwordChangedAt'});
+  If we want to exclude specified field then:
+  .populate({path: 'guides', select: 'name email'}); */
+  const tour = await Tour.findById(req.params.id).populate('reviews');
 
   // If req.params.id is a valid id format that mongo can cast to ObjectId, then it will execute findById() EVEN if that id doesn't exist. In this case, it will return null instead of error. So we have to handle it manually.
 

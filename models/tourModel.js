@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 // const slugify = require('slugify');
 const validator = require('validator');
+// const User = require('./userModel');
 
 // We can use set timestamps to true which will automatically create 2 fields: createdAt and updatedAt.
 // const tourSchema = new mongoose.Schema( {<All value pairs here>}, {timestamps: true})
@@ -98,6 +99,43 @@ const tourSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    startLocation: {
+      // GeoSpatial JSON
+      type: {
+        type: String,
+        default: 'Point',
+        enum: ['Point'], // We can have more possible option like polygon or line or other geometries.
+      },
+      coordinates: [Number], // REMEMBER: It's Longitude first then latitude second. Is opposite of the usual.
+      address: String,
+      description: String,
+    },
+
+    /* ####################### Embedded document ###################### */
+
+    locations: [
+      {
+        type: {
+          type: String,
+          default: 'Point',
+          enum: ['Point'],
+        },
+        coordinates: [Number],
+        address: String,
+        description: String,
+        day: Number,
+      },
+    ],
+    // guides: Array, // This is to show how to embed a doc during creation.
+
+    /* ####################### Child referencing ###################### */
+
+    guides: [
+      {
+        type: mongoose.Schema.ObjectId,
+        ref: 'User',
+      },
+    ],
   },
   {
     //We need to explicitly state that every time we output JSON & object, we want to include the virtual properties.
@@ -107,6 +145,15 @@ const tourSchema = new mongoose.Schema(
     // id: false,
   }
 );
+
+/* If we want remove _id in JSON. Do as below. */
+// tourSchema.set('toJSON', {
+//   virtuals: true,
+//   versionKey: false,
+//   transform: function (doc, ret) {
+//     delete ret._id;
+//   },
+// });
 
 /* ###################### Virtual properties ###################### */
 
@@ -123,14 +170,16 @@ Bear in mind we cannot query this virtual property because they are technically 
 //   return this._id.toHexString();
 // });
 
-/* If we want remove _id in JSON. Do as below. */
-// tourSchema.set('toJSON', {
-//   virtuals: true,
-//   versionKey: false,
-//   transform: function (doc, ret) {
-//     delete ret._id;
-//   },
-// });
+/* ####################### Virtual populate ####################### */
+
+tourSchema.virtual('reviews', {
+  /* The targeted schema */
+  ref: 'Review',
+  /* The name of the field in the other model (reviewModel) where the reference to the current model is stored. */
+  foreignField: 'tour',
+  /* The name of the field that is stored in this current model corresponding to the other model. */
+  localField: '_id',
+});
 
 /* ###################### Document middleware ##################### */
 
@@ -151,16 +200,39 @@ The 'save' is called hook. We also can call this as pre-save hook middleware. We
 //   next();
 // });
 
-/* ####################### Query middleware ####################### */
+/* This Jonas shows us how to embed a doc during creation. This simple code that we implemented here only works for creating new documents, not for updating them. So now, we would have to do go ahead and implement this same logic also for updates. However, Jonas is not going to do that because that there are actually some drawbacks of embedding this data in this case.
+For example, imagine that a tour guide updates his email address, or they change their role from guide to lead guide. Each time one of these changes would happen, then you'd have to check if a tour has that user as a guide, and if so, then update the tour as well, and so that's really a lot of work and we're not gonna go in that direction, all right? */
 
-// /^find/ is regex denotes all strings start with 'find'. This will include findOne(), findById(), findOneAndDelete(), findOneAndUpdate().
-// tourSchema.pre(/^find/, function (next) {
-//   /* Mongoose will auto set "secretTour": false because this is how it works. It will try to populate all default data when returning resulting document, but in our actual db, there is no secretTour field if we don't set it. */
-//   this.find({ secretTour: { $ne: true } });
-//   /* this keyword points to the query object. Unlike document middleware, we cannot simply add property of slug without setting it up in our model because it is an document. However, we can add start property right in here because this points to a query object */
-//   this.start = Date.now();
+// tourSchema.pre('save', async function (next) {
+//   const guidesPromises = this.guides.map(async (id) => await User.findById(id));
+//   /* Line above only return promises, so we need to await Promise.all to get all real returned results. */
+//   this.guides = await Promise.all(guidesPromises);
 //   next();
 // });
+
+/* ####################### Query middleware ####################### */
+
+/* /^find/ is regex denotes all strings start with 'find'. This will include findOne(), findById(), findOneAndDelete(), findOneAndUpdate(). */
+tourSchema.pre(/^find/, function (next) {
+  /* Mongoose will auto set "secretTour": false because this is how it works. It will try to populate all default data when returning resulting document, but in our actual db, there is no secretTour field if we don't set it. */
+  this.find({ secretTour: { $ne: true } });
+  /* this keyword points to the query object. Unlike document middleware, we cannot simply add property of slug without setting it up in our model because it is an document. However, we can add start property right in here because this points to a query object */
+  // this.start = Date.now();
+  next();
+});
+
+/* Using .populate() is indeed a new query action on top of any find methods. Beware of its performance.
+If we want to include every fields we use .populate('guides'); If we want to exclude specified field then:
+.populate({path: 'guides', select: '-__v -passwordChangedAt'});
+If we want to exclude specified field then:
+.populate({path: 'guides', select: 'name email'}); */
+tourSchema.pre(/^find/, function (next) {
+  this.populate({
+    path: 'guides',
+    select: '-__v -passwordChangedAt',
+  });
+  next();
+});
 
 // tourSchema.post(/^find/, function (doc, next) {
 //   /* We can access this keyword because it still points to query object. This is special for query middleware. */

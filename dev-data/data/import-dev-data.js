@@ -18,7 +18,7 @@ mongoose
 
 // We need to convert JSON to JS object.
 // __dirname is an environment variable that tells you the absolute path of the directory containing the currently executing file.
-const tours = JSON.parse(fs.readFileSync(`${__dirname}/tours-simple.json`, 'utf-8'));
+const tours = JSON.parse(fs.readFileSync(`${__dirname}/tours.json`, 'utf-8'));
 
 /* ############################### import data ############################## */
 

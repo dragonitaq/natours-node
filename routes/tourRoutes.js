@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const tourController = require('../controllers/tourController');
 const authController = require('../controllers/authController');
+const reviewRouter = require('./reviewRoute');
 
 /* We cannot put this route below '/:id' route because Express will think that 'top-5-cheap' is the value of ':id' parameter. Must be CAREFUL!
 When we have 2 callbacks, it will execute in order. */
@@ -13,5 +14,8 @@ router.route('/monthly-plan/:year').get(tourController.getMonthlyPlan);
 router.route('/').post(tourController.createTour).get(authController.protect, tourController.getAllTours);
 
 router.route('/:id').get(tourController.getTour).patch(tourController.updateTour).delete(authController.protect, authController.restrictTo('admin', 'lead-guide'), tourController.deleteTour);
+
+/* Here we mount a router on top of another router. It's necessary if we have long complex URL. */
+router.use('/:tourId/reviews', reviewRouter);
 
 module.exports = router;

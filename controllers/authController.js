@@ -119,6 +119,7 @@ exports.protect = catchAsync(async (req, res, next) => {
   next();
 });
 
+/* We restrict only specified user roles can pass this middleware. */
 exports.restrictTo = (...roles) => {
   // roles = ['admin', 'lead-guide']
   return (req, res, next) => {

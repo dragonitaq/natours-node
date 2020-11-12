@@ -3,10 +3,12 @@ const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
 const tourRouter = require('./routes/tourRoutes');
 const userRouter = require('./routes/userRoutes');
+const reviewRouter = require('./routes/reviewRoute')
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
+const hpp = require('hpp');
 
 // First we store the express into const express.
 const express = require('express');
@@ -108,9 +110,10 @@ MUST use next() in all the middleware. If not, the middleware will stuck in proc
 /* @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ */
 
 /* Here tourRouter is the router object that we exported from the tourRoutes.js file. Same goes to userRouter. We are mounting a new router, Router() on a route, '/api/v1/tours'
-Another words, we "mounted" the tourRouter onto the '/api/v1/tours route' */
+Another words, we "mounted" the tourRouter (they call mini app) onto the '/api/v1/tours route' */
 app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
+app.use('/api/v1/reviews', reviewRouter);
 
 /* We MUST place these code at the last order of our routes. Because this is where we accept all unhandled URL. */
 app.all('*', (req, res, next) => {
