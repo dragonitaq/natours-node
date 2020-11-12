@@ -266,3 +266,49 @@ https://www.owasp.org/index.php/Main_Page
 
 Express itself has page to recommend security practices
 http://expressjs.com/en/advanced/best-practice-security.html
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+Indexes are MongoDB feature that create a separation index file space on top of a particular collections. All specified field be be indexed will be here. User can select the order of the index list to optimize searching algorithm. This will enhance the read query process significantly.
+
+In compound index, it also works for if you only query one of the fields in the compounded fields. So we no need to create another index just for that individual field anymore.
+
+When we set a field to be unique in schema model, Mongoose will automatically create index for its in MongoDB with unique property.
+
+We need to carefully study the DB accessing patterns of the app in order to figure out which fields query the most and thus need to be indexed.
+
+We don't blindly set all fields to be indexed because indexes occupy space in the DB. Furthermore, each index needs to be updated each time the underlying collection document is updated. This updating needs CPU resources. So if that collection is often heavily get written, then we should avoid index the fields inside. So we should achieve a balance according to the rear/write ratio.
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+When we try to setup feature that prevents user from creating duplicated reviews on a tour, we sometimes couldn't achieve it. Notice the code we use is as below:
+reviewSchema.index({ tour: 1, user: 1 }, { unique: true });
+
+The reason is that we probably already have duplicate reviews in your database and so mongoDB fails to add the unique option to the index. What we need to do is to delete the duplicated reviews on a tour and then run the code.
+
+Not only that, if we have compound index in DB we have to delete that compound index then restart again our server to to refresh it. Weird thing for MongoDB.
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+To do a many-to-many DB relationship, your models would look like:
+
+// Blog model
+  tags: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tag"
+    }
+  ]
+ 
+// Tag model
+  blogs: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Blog"
+    }
+  ]
+
+And if you want to add to either of them, you just have to push into its array. For example:
+
+tag.blogs.push(new_blog)
+await tag.save()

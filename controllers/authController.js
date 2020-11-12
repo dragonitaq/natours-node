@@ -46,6 +46,7 @@ const createSendToken = async (user, statusCode, res) => {
   }
 };
 
+/* We can't use factory function here because this is unique one that require authentication. */
 exports.signup = catchAsync(async (req, res, next) => {
   /*  We specify ONLY there fields are to be taken and store in our DB. The reason here is because tricky user can manually insert data like req.body.role=admin and if our data schema accidentally has key value of "role" that match it, then it will have "admin" value with it. If our app uses role to specify admin privilege, then our system is compromised. */
   const newUser = await User.create({

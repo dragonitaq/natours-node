@@ -12,8 +12,6 @@ const hpp = require('hpp');
 
 // First we store the express into const express.
 const express = require('express');
-const { parseConnectionUrl } = require('nodemailer/lib/shared');
-const { sanitize } = require('express-mongo-sanitize');
 // Then we execute the express function which in return starts our application.
 const app = express();
 // The shorthand is as below:

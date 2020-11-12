@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-// const slugify = require('slugify');
+const slugify = require('slugify');
 const validator = require('validator');
 // const User = require('./userModel');
 
@@ -22,8 +22,7 @@ const tourSchema = new mongoose.Schema(
         message: 'Tour name must only contain characters',
       },
     },
-    // For testing document middleware purpose
-    // slug: String,
+    slug: String,
     duration: {
       type: Number,
       required: [true, 'A tour must have a duration'],
@@ -48,6 +47,8 @@ const tourSchema = new mongoose.Schema(
       default: 4.5,
       min: [1, 'Rating must be above 1.0'], // This min & max also work for dates.
       max: [5, 'Rating must be below 5.0'],
+      /* Using "set" means this function will run every time its value is updated. val is the updated value, the callback will take in this value for its operation. */
+      set: (val) => Math.round(val * 10) / 10, // e.g 4.666*10=46.66, round(46.66)=47, 47/10=4.7
     },
     ratingsQuantity: {
       type: Number,
@@ -145,6 +146,15 @@ const tourSchema = new mongoose.Schema(
     // id: false,
   }
 );
+
+/* This is how we specify certain fields to be indexed. For number we use 1 for ascending & -1 for descending */
+/* Single field index */
+// tourSchema.index({ price: 1 });
+tourSchema.index({ slug: 1 });
+/* Compound field index */
+tourSchema.index({ price: 1, ratingsAverage: -1 });
+
+tourSchema.index({ startLocation: '2dsphere' });
 
 /* If we want remove _id in JSON. Do as below. */
 // tourSchema.set('toJSON', {
@@ -246,6 +256,20 @@ tourSchema.pre(/^find/, function (next) {
 //   this.pipeline().unshift({ $match: { secretTour: { $ne: true } } });
 //   next();
 // });
+
+/* Code above is Jonas' which if enabled will block geoNear aggregation. Code below solve the issue. */
+
+tourSchema.pre('aggregate', function (next) {
+  // Hide secret tours if geoNear is NOT used
+  if (!(this.pipeline().length > 0 && '$geoNear' in this.pipeline()[0])) {
+    this.pipeline().unshift({
+      $match: { secretTour: { $ne: true } },
+    });
+  }
+  next();
+});
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
 /* We use capital T for Tour because that is convention for model in mongoose. I think the reason is because it serves as a document constructor to create document.
   We should use singular name for the first argument for our collection, then mongoose will turn it into a lowercase plural version ("tours", in this case)
