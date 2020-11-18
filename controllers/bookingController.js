@@ -55,9 +55,9 @@ const createBookingCheckout = catchAsync(async (session) => {
   /* We then extract all the data we need from the session object that we configured earlier. */
   const tourId = session.client_reference_id;
   // We wrap await function because we just want the id property of the returned user doc.
-  const userId = (await User.findOne({ email: customer_email })).id;
+  const userId = (await User.findOne({ email: session.customer_email })).id;
   // No idea why line_items changed to display_items after session object returned.
-  const price = session.display_items[0].amount / 100;
+  const price = session.amount_total / 100;
   await Booking.create({ tourId, userId, price });
 });
 
