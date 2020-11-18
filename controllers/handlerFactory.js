@@ -79,7 +79,7 @@ exports.getOne = (Model, popOptions) =>
     });
   });
 
-// FIXME Currently when this method applies to review, it will get all the reviews regardless of the specified tour.
+// REVIEW Currently when this method applies to review, it will get all the reviews regardless of the specified tour.
 exports.getAll = (Model) =>
   catchAsync(async (req, res, next) => {
     /* ############### Allow getReview on specific tour ############### */

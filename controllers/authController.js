@@ -35,8 +35,6 @@ const createSendToken = async (user, statusCode, res) => {
 
     res.status(statusCode).json({
       status: 'success',
-      /* REVIEW If we don't send token back, it won't work for any route that need to get pass authController.protect.
-      Then what is the point of sending both token & secure cookie since token already be accessible.  */
       token,
       data: {
         user,

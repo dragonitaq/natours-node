@@ -41,7 +41,7 @@ mongoose
 
 // We run nodemon server.js for this file because this is where the app.listen is.
 
-const port = 3000 || process.env.PORT; // FIXME Why the OR logic doesn't work?
+const port = process.env.PORT || 3000;
 const server = app.listen(port, () => {
   console.log('Server is live at port 3000');
 });
