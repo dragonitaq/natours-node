@@ -1,0 +1,108 @@
+//- Here inject the code from base pug to here.
+extends base
+
+//- Using this technique, we won't replace the content of the block, instead with keyword "append", it will add to the end of that block; and keyword "prepend" will add to the beginning of the block.
+//- Here we will inject code below to the ending of the "head" block. Because we only want inject MapBox to tour page.
+block append head
+  //- helmet is stopping this script from executing. We did some settings to make it work but received a lot of warning. Also we don't use npm version of mapbox because for now it crashed with parcel. But when we compile parcel, it automatically instal mapbox npm beta version for us.
+  script(src='https://api.mapbox.com/mapbox-gl-js/v1.12.0/mapbox-gl.js')
+  link(href='https://api.mapbox.com/mapbox-gl-js/v1.12.0/mapbox-gl.css' rel='stylesheet')
+  script(src='https://js.stripe.com/v3/')
+
+//- To import mixin file of _reviewCard like this. Just like how base include _header & _footer.
+include _reviewCard
+
+//- This is how you write mixin for pug. MUST indent after declare the mixin.
+mixin overviewBox (label, text, icon)
+  .overview-box__detail
+    svg.overview-box__icon
+      use(xlink:href=`/img/icons.svg#icon-${icon}`)
+    span.overview-box__label= label
+    span.overview-box__text= text
+
+//- Here we inject the code into the "content" block inside base pug and replacing everything in it with code below.
+block content
+  section.section-header
+    .header__hero
+      .header__hero-overlay &nbsp;
+      img.header__hero-img(src=`/img/tours/${tour.imageCover}` alt=`${tour.name}`)
+
+    .heading-box
+      h1.heading-primary
+        span= `${tour.name} tour`
+      .heading-box__group
+        .heading-box__detail
+          svg.heading-box__icon
+            use(xlink:href='/img/icons.svg#icon-clock')
+          span.heading-box__text= `${tour.duration} days`
+        .heading-box__detail
+          svg.heading-box__icon
+            use(xlink:href='/img/icons.svg#icon-map-pin')
+          span.heading-box__text= tour.startLocation.description
+
+  section.section-description
+    .overview-box
+      div
+        .overview-box__group
+          h2.heading-secondary.ma-bt-lg Quick facts
+
+          - const date = tour.startDates[0].toLocaleString('en-us',{month: 'long', year: 'numeric'})
+          //- We apply mixin here like this.
+          +overviewBox('Next day', date, 'calendar')
+          +overviewBox('Difficulty', tour.difficulty, 'trending-up')
+          +overviewBox('Participants', `${tour.maxGroupSize} people`, 'user')
+          +overviewBox('Rating', `${tour.ratingsAverage} / 5`, 'star')
+
+        .overview-box__group
+          h2.heading-secondary.ma-bt-lg Your tour guides
+
+          each guide in tour.guides
+            .overview-box__detail
+              img.overview-box__img(src=`/img/users/${guide.photo}` alt=`${guide.name}`)
+              //- This is how use JS IF operation in pug. Remember the indent after IF statement.
+              //- We can use this: - const role = guide.role === 'guide' ? 'Tour guide' : 'Lead guide';
+              - if (guide.role === 'lead-guide')
+                span.overview-box__label LEAD GUIDE
+              - if (guide.role === 'guide')
+                span.overview-box__label TOUR GUIDE
+              span.overview-box__text= guide.name
+
+    .description-box
+      h2.heading-secondary.ma-bt-lg= `${tour.name} tour`
+      //- We CANNOT manually edit \n directly in DB. Because we will not see \n character at all. The only want to edit \n into DB is to use proper Mongo API.
+      //- Mongo stores \n differently in DB. It will escape with \\n. To solve that, visit https://stackoverflow.com/questions/62686893/new-line-n-does-not-work-in-mongodb-atlas
+      - const paragraph = tour.description.split('\n')
+      each para in paragraph
+        p.description__text= para
+
+  section.section-pictures
+    //- Looping in pug can have iteration in the second argument (ii). ii always start with 0.
+    each image, ii in tour.images
+      .picture-box
+        //- We can't add template string direct into .className1, we have to explicitly write class=className${ii+1}
+        img.picture-box__img(src=`/img/tours/${image}` alt=`${tour.name} Tour ${ii+1}` class=`picture-box__img--${ii+1}`)
+
+  section.section-map
+    //- Use id in pug as "#". Instead of making AJAX request for tour locations, we store the locations data from pug local into html data attribute. We need to stringify because HTML can only store string data.
+    #map(data-locations=`${JSON.stringify(tour.locations)}`)
+
+  section.section-reviews
+    .reviews
+      each review in tour.reviews
+        +reviewCard(review)
+
+  section.section-cta
+    .cta
+      .cta__img.cta__img--logo
+        img(src='/img/logo-white.png' alt='Natours logo')
+      //- We simply put 2 random images for display purpose. No particular reason.
+      img.cta__img.cta__img--1(src=`/img/tours/${tour.images[0]}` alt='Tour picture')
+      img.cta__img.cta__img--2(src=`/img/tours/${tour.images[1]}` alt='Tour picture')
+      .cta__content
+        h2.heading-secondary What are you waiting for?
+        p.cta__text= `${tour.duration} days. 1 adventure. Infinite memories. Make it yours today!`
+        if user
+          //- data-tour-id will auto-convert to dataset.tourId (camel case) that we can use in JS.
+          button.btn.btn--green.span-all-rows#book-tour(data-tour-id=`${tour.id}`) Book tour now!
+        else  
+          a.btn.btn--green.span-all-rows(href='/login') Login to book tour!

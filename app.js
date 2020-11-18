@@ -1,14 +1,18 @@
+const path = require('path');
 const morgan = require('morgan');
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
 const tourRouter = require('./routes/tourRoutes');
 const userRouter = require('./routes/userRoutes');
-const reviewRouter = require('./routes/reviewRoute')
+const reviewRouter = require('./routes/reviewRoute');
+const viewRouter = require('./routes/viewRoute');
+const bookingRouter = require('./routes/bookingRoute');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 const hpp = require('hpp');
+const cookieParser = require('cookie-parser');
 
 // First we store the express into const express.
 const express = require('express');
@@ -16,6 +20,11 @@ const express = require('express');
 const app = express();
 // The shorthand is as below:
 // const app = require('express')();
+
+/* Setting/telling Express which templating engine we are using in this project. Express supports many common engines. */
+app.set('view engine', 'pug');
+/* This is a weird way to combine string. Jonas said because we don't know the path we receive from somewhere consists of slash or not. This way we no need think of it because Node will automatically create the path. */
+app.set('views', path.join(__dirname, 'views'));
 
 /* @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ */
 /*                         Global middleware                        */
@@ -28,6 +37,19 @@ const app = express();
 /* In app.use(), we should only put in function but not executing it. In this case, helmet() will return a function that will be waiting to be called.
 Use helmet as early as possible in middle to ensure secure headers to be set. */
 app.use(helmet());
+
+/* We have to set manually customize as below for mapbox to work. This is because browsers use strict content security policies and not allowing external requests to endpoints other than specified in headers of the response. I have no idea what settings are done here exactly. */
+app.use(
+  helmet.contentSecurityPolicy({
+    directives: {
+      defaultSrc: ["'self'", 'https:', 'http:', 'data:', 'ws:'],
+      baseUri: ["'self'"],
+      fontSrc: ["'self'", 'https:', 'http:', 'data:'],
+      scriptSrc: ["'self'", 'https:', 'http:', 'blob:'],
+      styleSrc: ["'self'", 'https:', 'http:', 'unsafe-inline'],
+    },
+  })
+);
 
 /* ###################### Development logging ##################### */
 
@@ -53,9 +75,18 @@ app.use('/api', limiter);
 /* ########################## Body parser ######################### */
 
 /* This is built-in middleware.
-In this step, we convert the data from the body (JSON) to JS object. In another word, the express.json() middleware parses the JSON into a JavaScript object and puts it on req.body. Express.json() and body-parser are the same.
+In this step, we convert the data from the body (JSON) to JS object. In another word, the express.json() middleware parses the JSON into a JavaScript object and puts it on req.body. Express.json() and body-parser are the same thing.
 We set the limit of data from the body only can have max of 10kb. */
 app.use(express.json({ limit: '10kb' }));
+
+/* ########################## URL encoded ######################### */
+
+/* Because browser will always send encoded URL to our server, we need to decode it in order to ready the body. */
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+
+/* ######################## Cookies parser ######################## */
+/* We use third party package to parse data from the cookies. This way we can access cookies via req.cookies. */
+app.use(cookieParser());
 
 // We start sanitization only after we parse into JS object.
 
@@ -85,7 +116,7 @@ app.use(
 /* ###################### Serve static files ###################### */
 
 /* Method to serve static folder which is not from a route. */
-app.use(express.static(`${__dirname}/public`));
+app.use(express.static(path.join(__dirname, 'public')));
 
 /* ###################### Testing middleware ###################### */
 
@@ -109,9 +140,11 @@ MUST use next() in all the middleware. If not, the middleware will stuck in proc
 
 /* Here tourRouter is the router object that we exported from the tourRoutes.js file. Same goes to userRouter. We are mounting a new router, Router() on a route, '/api/v1/tours'
 Another words, we "mounted" the tourRouter (they call mini app) onto the '/api/v1/tours route' */
+app.use('/', viewRouter);
 app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/reviews', reviewRouter);
+app.use('/api/v1/bookings', bookingRouter);
 
 /* We MUST place these code at the last order of our routes. Because this is where we accept all unhandled URL. */
 app.all('*', (req, res, next) => {

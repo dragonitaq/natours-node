@@ -1,9 +1,69 @@
-const { query } = require('express');
 const Tour = require('../models/tourModel');
 // const APIFeatures = require('../utils/apiFeatures');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 const factory = require('./handlerFactory');
+const multer = require('multer');
+const sharp = require('sharp');
+
+const multerStorage = multer.memoryStorage();
+
+const multerFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image')) {
+    cb(null, true);
+  } else {
+    cb(new AppError('Not an image. Please only upload image file.', 400), false);
+  }
+};
+
+const upload = multer({
+  storage: multerStorage,
+  fileFilter: multerFilter,
+});
+
+// Notice this's a middleware but there's not next() available because it's called internally by Multer itself.
+exports.uploadTourImages = upload.fields([
+  { name: 'imageCover', maxCount: 1 },
+  { name: 'images', maxCount: 3 },
+]);
+
+// When we upload only 1 image. Then we can access it through "req.file"
+// upload.single('image');
+// When we upload multiple image with setting maximum of 5. Then we can access it through an array in "req.files"
+// upload.array('image', 5);
+
+exports.resizeTourImages = catchAsync(async (req, res, next) => {
+  if (!req.files.imageCover || !req.files.images) return next();
+
+  // STEP 1: Process tour image cover
+  /* We have to attach the filename into req.body because in our handlerFactory, the updateOne() takes everything in the rq.body and update it. */
+  req.body.imageCover = `tour-${req.params.id}-${Date.now()}-cover.jpeg`;
+  await sharp(req.files.imageCover[0].buffer)
+    .resize(2000, 1333) // This is standard to get 3/2 ratio.
+    .toFormat('jpeg')
+    .jpeg({ quality: 90 })
+    .toFile(`public/img/tours/${req.body.imageCover}`);
+
+  // STEP 2: Process tour images
+  /* We create an empty for each resized image to push in because our DB expect an array */
+  req.body.images = [];
+  /* The issue here is our async/await is inside a callback, thus it is not blocking the code to wait until there are results from the callback. So we have to use old trick that first to catch all Promises with array method of map() and force await until all the Promises have resolved then only proceed the next code. Then we effectively blocking the code. */
+  await Promise.all(
+    /* ii is the index of the current file start with zero. */
+    req.files.images.map(async (file, ii) => {
+      /* We have to manipulate the filename in each incrementing iteration. */
+      const filename = `tour-${req.params.id}-${Date.now()}-${ii + 1}.jpeg`;
+      await sharp(file.buffer)
+        .resize(2000, 1333) // This is standard to get 3/2 ratio.
+        .toFormat('jpeg')
+        .jpeg({ quality: 90 })
+        .toFile(`public/img/tours/${filename}`);
+      req.body.images.push(filename);
+    })
+  );
+
+  next();
+});
 
 /* We make use of middleware to change the URL resource(slug) from '/top-5-cheap' to query '/top-5-cheap/?limit=5&sort=-ratingsAverage,price&fields=name,price,ratingsAverage,duration,summary,difficulty'
 We don't want to send any request here, we just want to modify the URL. So we use next() to direct the flow to the next process of middleware. We don't use async here because we don't expect a promise return. */

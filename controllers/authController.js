@@ -3,8 +3,7 @@ const User = require('../models/userModel');
 const catchAsync = require('../utils/catchAsync');
 const jwt = require('jsonwebtoken');
 const AppError = require('../utils/appError');
-const sendEmail = require('../utils/email');
-const { appendFile } = require('fs');
+const Email = require('../utils/email');
 const crypto = require('crypto');
 
 const createSendToken = async (user, statusCode, res) => {
@@ -23,7 +22,9 @@ const createSendToken = async (user, statusCode, res) => {
       // secure: true,
     };
 
-    if (process.env.NODE_ENV === 'production') cookieOptions.secure = true;
+    /* ANCHOR Remember remove comment for real production mode.
+    If we test run in production mode, we have to manually comment line below out. */
+    // if (process.env.NODE_ENV === 'production') cookieOptions.secure = true;
 
     /* One domain can only have one unique cookie name on a browser, for us is "jwt". So every time we send a new one, the old one get replace, which is exactly what we wanted. */
     res.cookie('jwt', token, cookieOptions);
@@ -56,8 +57,14 @@ exports.signup = catchAsync(async (req, res, next) => {
     passwordConfirm: req.body.passwordConfirm,
     // We need to enter the following code for it to work, why Jonas version has non of these by still work?
     passwordChangedAt: req.body.passwordChangedAt,
-    role: req.body.role, // FIXME We said don't want to import role data from user to prevent they manually set to admin. But with this code, how can we actually set it to admin when real admin user signup???
+    /* REVIEW We said don't want to import role data from user to prevent they manually set to admin. But with this code, how can we actually set it to admin when real admin user signup???
+    After proceed further into the course, I understand is Jonas' intention not to provide the option to let use specify their role during signing up. We default every user role to "user". On our end, we manually set the user role to admin or lead-guide or guide in DB. */
+    role: req.body.role,
   });
+
+  /* We make it dynamic here because we need to suit it for both dev and prod environment. protocol either http or https. req.get('host') will return our domain name.  */
+  const url = `${req.protocol}://${req.get('host')}/me`;
+  await new Email(newUser, url).sendWelcome();
 
   // Sync version
   // const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
@@ -87,13 +94,31 @@ exports.login = catchAsync(async (req, res, next) => {
   createSendToken(user, 200, res);
 });
 
+/* Since we can't temper cookie on browser, so we send a new token with dummy text instead of real token. This will replace the cookie on the client side.
+I found out a TRICK by setting expires: new Date(Date.now()) which means immediate expiry will make browser delete cookie immediately!!! */
+exports.logout = (req, res) => {
+  /* Student proposed method below. We specify the name & the path of the cookie we want to delete. If we don't specify the path, it will default to { path: '/' } */
+  res.clearCookie('jwt', { path: '/' });
+  /* Jonas' method */
+  // res.cookie('jwt', 'logged out', {
+  //   expires: new Date(Date.now()),
+  //   httpOnly: true,
+  // });
+  res.status(200).json({
+    status: 'success',
+  });
+};
+
 exports.protect = catchAsync(async (req, res, next) => {
   // STEP 1: Check if token is there
   let token;
 
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     token = req.headers.authorization.split(' ')[1];
+  } else if (req.cookies.jwt) {
+    token = req.cookies.jwt;
   }
+
   if (!token) {
     return next(new AppError('You are not logged in', 401));
   }
@@ -117,8 +142,36 @@ exports.protect = catchAsync(async (req, res, next) => {
 
   // STEP 5: Grant access to the protected route.
   req.user = currentUser;
+  // Because our view routes require to pass through this middleware, we need the local for pug to work.
+  res.locals.user = currentUser;
   next();
 });
+
+/* This is a middle to check if the user is logged-in. There will be no error. Because we just want to render pages accordingly to user logging status. In here, we take cookie and verify and then get the user doc(if any) then pass long to middleware so that when we render pages, we can use the user doc data from DB query.
+Notice we don't use catchAsync here because even when there is error(from jwt.verify), it is just because the user is not logged in. Then we don't get user doc data and just move on. */
+exports.isLoggedIn = async (req, res, next) => {
+  if (req.cookies.jwt) {
+    try {
+      const decoded = await promisify(jwt.verify)(req.cookies.jwt, process.env.JWT_SECRET);
+      const currentUser = await User.findById(decoded.id);
+      if (!currentUser) {
+        return next();
+      }
+      if (currentUser.changedPasswordAfter(decoded.iat)) {
+        return next();
+      }
+
+      /* If user reaches this line, the user is a logged-in user. We then define locals here named "user". Each of pug template will gain access to this. Is a way to pass data into template. We pass current user document into it. */
+      res.locals.user = currentUser;
+      /* So we pass the locals data into the next middleware then it reaches our function to render pages accordingly. */
+      return next();
+    } catch (err) {
+      return next();
+    }
+  }
+  /* If there is no cookie in req, means there is no logged-in user. So just pass to next middleware. */
+  next();
+};
 
 /* We restrict only specified user roles can pass this middleware. */
 exports.restrictTo = (...roles) => {
@@ -144,17 +197,22 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
   await user.save({ validateBeforeSave: false });
 
   // STEP 3: Send it to user's email inbox
-  // req.get('host') instead of req.headers.host?
-  const resetURL = `${req.protocol}://${req.get('host')}/api/v1/users/resetPassword/${resetToken}`;
-  const message = `Forgot your password? Submit a PATCH request with your new password and passwordConfirm to ${resetURL}\nIf you didn't forget your password, please ignore this email.`;
 
   /* We use another try/catch here because we want to manually handle passwordResetToken and passwordResetExpires variables in the database */
   try {
-    await sendEmail({
-      email: user.email,
-      subject: 'Your password reset token (valid for 10 minutes)',
-      message,
-    });
+    // req.get('host') instead of req.headers.host?
+    const resetURL = `${req.protocol}://${req.get('host')}/api/v1/users/resetPassword/${resetToken}`;
+
+    // This is for testing email password reset
+    // const message = `Forgot your password? Submit a PATCH request with your new password and passwordConfirm to ${resetURL}\nIf you didn't forget your password, please ignore this email.`;
+    // await Email({
+    //   email: user.email,
+    //   subject: 'Your password reset token (valid for 10 minutes)',
+    //   message,
+    // });
+
+    await new Email(user, resetURL).sendPasswordReset();
+
     res.status(200).json({
       status: 'success',
       message: 'Token is sent to email',

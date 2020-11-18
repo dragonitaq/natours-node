@@ -312,3 +312,24 @@ And if you want to add to either of them, you just have to push into its array. 
 
 tag.blogs.push(new_blog)
 await tag.save()
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+In HTML, when we put <script> in the head, we can use defer or async to have it script load after html is finish loading.
+
+The difference between async and defer centers around when the script is executed. Each async script executes at the first opportunity after it is finished downloading and before the window's load event. Whereas the defer scripts, on the other hand, are guaranteed to be executed in the order they occur in the page.
+
+We can also do something similar but written in specific JS file using 'DOMContentLoaded' like below:
+
+document.addEventListener('DOMContentLoaded', function() {
+    const locations = JSON.parse(document.getElementById('map').dataset.locations);
+});
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+In API, we send back token in authorization bearer.
+
+In webpage, we only send back token in cookie, never in authorization bearer.
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+

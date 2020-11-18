@@ -1,0 +1,18 @@
+//- We get access to locals of "user" from the middle of isLoggedIn().
+
+header.header
+  nav.nav.nav--tours
+    a.nav__el(href='/') All Tours
+  //- No need specify div if we want to use it.
+  .header__logo
+    img(src='/img/logo-white.png' alt='Natours logo')
+  nav.nav.nav--user
+    //- This is how we do simple pug IF operation. If there is a user, then only we render user menu.
+    if user
+      a.nav__el.nav__el--logout(href='#') Log out
+      a.nav__el(href='/me')
+        img.nav__user-img(src=`/img/users/${user.photo}` alt=`${user.name}`)
+        span= user.name.split(' ')[0]
+    else
+      a.nav__el(href='/login') Log in
+      button.nav__el.nav__el--cta Sign up

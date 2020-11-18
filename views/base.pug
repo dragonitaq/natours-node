@@ -1,0 +1,36 @@
+doctype html
+html(lang='en')
+  head
+    block head
+      script(src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.0/axios.min.js")
+      meta(charset='UTF-8')
+      meta(name='viewport' content='width=device-width, initial-scale=1.0')
+      link(href='https://fonts.googleapis.com/css?family=Lato:300,300i,700' rel='stylesheet')
+      //- We only 'defer' our own scripts (especially with DOM manipulation), not CDN script.
+      script(src='/js/bundle.js' defer)
+      //- We always use slash for relative URL. This means it will put the href value on top of the root route.
+      link(rel='stylesheet' href='/css/style.css')
+      link(rel='shortcut icon' type='image/png' href='/img/favicon.png')
+      //- #{} is call string interpolation in pug. Notice we don't put equal sign here, so it'll not be treated as JS but as string. In this situation, we can use #{} to directly put in pug variable into it. Pug variable can be treated as JS variable when there is no equal sign in place. Another words, if we're trying to interpolate a string in pug, we use #{}; if we're trying to interpolate a string in JavaScript, you use ${}
+      title Natours | #{title}
+
+  //- When we use "include" in parent pug, the parent includes its child file (_file and _footer). Which means copy code from child file into this parent file.
+  //- When we use "block" in parent pug, the child includes its parent file (base). Which means copy code from this parent file into the child file (overview and tour).
+  body
+    // HEADER
+    include _header
+
+    // CONTENT
+    //- The text "content" is arbitrary as long as it matches its child block text.
+    block content
+      //- If the child doesn't extends its content here, this parent content will be used instead.
+      h1 testing from base pug file
+
+    // FOOTER
+    include _footer
+
+//- In pug, we MUST always use single quote only!
+//- Use equal "=" for running JS that produces output. AKA buffered code.
+//- Use dash "-" for running JS without any output. AKA unbuffered code.
+
+//- Keep in mind that buffering unescaped content into your templates can be mighty risky if that content comes fresh from your users. Never trust user input! Source: pug official doc.

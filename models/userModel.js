@@ -22,7 +22,11 @@ const userSchema = new mongoose.Schema({
     lowercase: true,
     validate: [validator.isEmail, 'A valid email is required'],
   },
-  photo: String,
+  photo: {
+    type: String,
+    // FOr new user who hasn't upload photo, we default to our one.
+    default: 'default.jpg',
+  },
   role: {
     type: String,
     enum: ['user', 'guide', 'lead-guide', 'admin'],

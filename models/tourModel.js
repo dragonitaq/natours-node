@@ -182,6 +182,7 @@ Bear in mind we cannot query this virtual property because they are technically 
 
 /* ####################### Virtual populate ####################### */
 
+/* Here we setup to populate for parent referencing from child model (reviewModel). The enable all reviews written by all users related to a particular tour get populate into returned results. It's call virtual populate because review field is not technically stored in DB. */
 tourSchema.virtual('reviews', {
   /* The targeted schema */
   ref: 'Review',
@@ -197,11 +198,11 @@ tourSchema.virtual('reviews', {
 We will see the _id value being generated even this is a pre-hook middleware (data not yet save into db) because MongoDB ObjectIDs are generated client-side and not within MongoDB itself.
 The 'save' is called hook. We also can call this as pre-save hook middleware. We can have multiple pre & post functions inside the middleware. Just remember to call next() for it to proceed to follow the order of our code. */
 
-// tourSchema.pre('save', function (next) {
-//   // this keyword points to the document object
-//   this.slug = slugify(this.name, { lower: true });
-//   next();
-// });
+tourSchema.pre('save', function (next) {
+  // this keyword points to the document object
+  this.slug = slugify(this.name, { lower: true });
+  next();
+});
 
 // /* .post will return the newly created/saved document inside "doc". */
 // tourSchema.post('save', function (doc, next) {
