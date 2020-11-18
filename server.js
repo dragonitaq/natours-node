@@ -54,7 +54,7 @@ process.on('unhandledRejection', (err) => {
   console.error(`Error occurred at ${new Date()}`);
   // console.log(err.name, err.message);
   console.error(err);
-  /* We give server time to finish all requests that are still pending or handling at thattime. Only after that, the server is killed.
+  /* We give server time to finish all requests that are still pending or handling at that time. Only after that, the server is killed.
   Notice we don't use async/await here because this will be the last process on the app, we don't worry about blocking any code. */
   console.log('UNHANDLED REJECTION! Shutting down...');
   server.close(() => {
@@ -62,3 +62,14 @@ process.on('unhandledRejection', (err) => {
     process.exit(1); // This will terminate app abruptly if we don't first do server.close().
   });
 });
+
+/* A dyno is what Heroku uses as container in which our application is running. These dynos restart every 24 hours in order to keep our app in a healthy state. The way that Heroku does is by sending the so-called "sick term signal" to our node app, and the application will then shut down immediately. 
+
+The problem with this is that the shut down can be very abrupt. So this can then leave requests that are currently being processed hanging in the air and that's not ideal. We so handle it here to make sure server shut down gracefully. */
+process.on('SIGTERM', ()=> {
+  console.log('SIGTERM RECEIVED. Shutting down gracefully...')
+  server.close(()=>{
+    // We don't use process.exit(1) because heroku system will shut it down for us.
+    console.log('Process terminated!')
+  })
+})

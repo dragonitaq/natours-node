@@ -22,6 +22,9 @@ const app = express();
 // The shorthand is as below:
 // const app = require('express')();
 
+/* Because heroku redirect all request using proxy and modify them before reaching our server, so we need to enable 'trust proxy' which is a feature that Express offer. */
+app.enable('trust proxy');
+
 /* Setting/telling Express which templating engine we are using in this project. Express supports many common engines. */
 app.set('view engine', 'pug');
 /* This is a weird way to combine string. Jonas said because we don't know the path we receive from somewhere consists of slash or not. This way we no need think of it because Node will automatically create the path. */

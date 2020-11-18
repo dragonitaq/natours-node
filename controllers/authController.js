@@ -6,28 +6,23 @@ const AppError = require('../utils/appError');
 const Email = require('../utils/email');
 const crypto = require('crypto');
 
-const createSendToken = async (user, statusCode, res) => {
+const createSendToken = async (user, statusCode, req, res) => {
   try {
     const token = await signToken(user.id);
 
-    const cookieOptions = {
+    /* One domain can only have one unique cookie name on a browser, for us is "jwt". So every time we send a new one, the old one get replace, which is exactly what we wanted. */
+    res.cookie('jwt', token, {
       // We convert into milliseconds.
       expires: new Date(Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000),
 
       /* When set to true, the cookie cannot be accessed or modified in anyway by the browser. */
       httpOnly: true,
 
-      /* ONLY SET secure:true IN PRODUCTION. Because we cannot send HTTPS in local connection.
-      When set to true, the cookie will only get sent on a encrypted connection (HTTPS). */
-      // secure: true,
-    };
-
-    /* ANCHOR Remember remove comment for real production mode.
-    If we test run in production mode, we have to manually comment line below out. */
-    if (process.env.NODE_ENV === 'production') cookieOptions.secure = true;
-
-    /* One domain can only have one unique cookie name on a browser, for us is "jwt". So every time we send a new one, the old one get replace, which is exactly what we wanted. */
-    res.cookie('jwt', token, cookieOptions);
+      /* When set to true, the cookie will only get sent on a encrypted connection (HTTPS).
+      req.secure return true when Express detects the connection is secure. req.headers('x-forwarded-proto') === 'https' is a special detection for secure connection configured ONLY for heroku protocol.
+      When either detection return true, we use secure cookie sending method. We need to do this: app.enable('trust proxy') in app.js for it to work because heroku redirect all request using proxy and modify them before reaching our server. */
+      secure: req.secure || req.headers('x-forwarded-proto') === 'https',
+    });
 
     /* This is to remove the password from the output.
     Encrypted password is sent over because it is created during creating new doc. But why??? */
@@ -70,7 +65,7 @@ exports.signup = catchAsync(async (req, res, next) => {
   // Async version
   // const token = await signToken(newUser._id);
 
-  createSendToken(newUser, 201, res);
+  createSendToken(newUser, 201, req, res);
 });
 
 exports.login = catchAsync(async (req, res, next) => {
@@ -89,7 +84,7 @@ exports.login = catchAsync(async (req, res, next) => {
   if (!user || !(await user.correctPassword(password))) {
     return next(new AppError('Incorrect email or password'), 401); // 401 means unauthorized.
   }
-  createSendToken(user, 200, res);
+  createSendToken(user, 200, req, res);
 });
 
 /* Since we can't temper cookie on browser, so we send a new token with dummy text instead of real token. This will replace the cookie on the client side.
@@ -245,7 +240,7 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
   // STEP 3: Update changePasswordAt key value
 
   // STEP 4: Log in the user, send JWT
-  createSendToken(user, 200, res);
+  createSendToken(user, 200, req, res);
 });
 
 exports.updatePassword = catchAsync(async (req, res, next) => {
@@ -263,7 +258,7 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
   await user.save();
 
   // STEP 4: Log user in, send JWT
-  createSendToken(user, 200, res);
+  createSendToken(user, 200, req, res);
 });
 /* ############## Async version to generate JWT token ############# */
 
