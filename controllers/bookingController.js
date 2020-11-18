@@ -58,7 +58,6 @@ const createBookingCheckout = catchAsync(async (session) => {
   const userId = (await User.findOne({ email: session.customer_email })).id;
   // No idea why line_items changed to display_items after session object returned.
   const price = session.amount_total / 100;
-  console.log(tourId, userId, price);
   await Booking.create({ tour: tourId, user: userId, price });
 });
 
