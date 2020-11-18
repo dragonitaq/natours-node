@@ -14,6 +14,7 @@ const xss = require('xss-clean');
 const hpp = require('hpp');
 const cookieParser = require('cookie-parser');
 const compression = require('compression');
+const cors = require('cors');
 
 // First we store the express into const express.
 const express = require('express');
@@ -35,6 +36,28 @@ app.set('views', path.join(__dirname, 'views'));
 /* @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ */
 
 /* REMEMBER: When we want middleware to run for EVERY request (no matter what route), we use app.use() and put it into this app.js file. */
+
+/* ######################## Implement CORS ######################## */
+
+app.use(cors());
+
+/* In case our API is host on the domain of api.natours.com but our front-end website is host on domain of natours.com. Then CORS is prohibited because subdomain is not allowed. We can configure that only natours.com can access to our api with GET & POST methods (AKA simple request) ONLY by coding like below: */
+// app.use(cors({
+//   origin: 'https://www.natours.com'
+// }))
+
+/* Non-simple requests are put, patch and delete requests, or requests that send cookies or use nonstandard headers. They require a so-called preflight phase.
+
+Whenever there is a non-simple request, the browser will then automatically issue the preflight phase before the real request actually happens. In preflight phase, the browser first does an options request in order to figure out if the actual request is safe to send.
+
+We need to actually respond to that options request. When we get one of these options requests on our server, we then need to send back the same Access-Control-Allow-Origin header. This way the browser will then know that the actual request is safe to perform and will proceed accordingly.
+
+To implement CORS for Non-simple request, we need response to options request like code below. The '*' is wildcard meaning we response to every route with CORS. */
+app.options('*', cors());
+
+/* If we want to response to specify route for options request, we code like below. */
+// app.options('/api/v1/tours/:id', cors());
+
 
 /* ################### Set security HTTP headers ################## */
 
@@ -154,6 +177,9 @@ app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/reviews', reviewRouter);
 app.use('/api/v1/bookings', bookingRouter);
+
+// NOTE- If we want to implement CORS for specify route, we can call cors() on the route as the FIRST middleware like this:
+// app.use('/api/v1/tours', cors(), tourRouter);
 
 /* We MUST place these code at the last order of our routes. Because this is where we accept all unhandled URL. */
 app.all('*', (req, res, next) => {
