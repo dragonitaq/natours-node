@@ -13,6 +13,7 @@ const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 const hpp = require('hpp');
 const cookieParser = require('cookie-parser');
+const compression = require('compression');
 
 // First we store the express into const express.
 const express = require('express');
@@ -117,6 +118,11 @@ app.use(
 
 /* Method to serve static folder which is not from a route. */
 app.use(express.static(path.join(__dirname, 'public')));
+
+/* ####################### Text compression ####################### */
+
+/* This will return a middleware function which will compress all text ONLY file before sending out. */
+app.use(compression());
 
 /* ###################### Testing middleware ###################### */
 

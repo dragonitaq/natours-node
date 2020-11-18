@@ -9,7 +9,7 @@ export const bookTour = async (tourId) => {
   try {
     // STEP 1: Get checkout session from our server
     /* Notice if we just do axios http request, it will default to "GET" request. We made our API call to our server to generate a session object. */
-    const session = await axios(`http://127.0.0.1:3000/api/v1/bookings/checkout-session/${tourId}`);
+    const session = await axios(`/api/v1/bookings/checkout-session/${tourId}`);
 
     // STEP 2: Create checkout form & charge credit card
     /* We use the session object received from axios to ask Stripe to proceed checkout. */
@@ -18,7 +18,6 @@ export const bookTour = async (tourId) => {
       sessionId: session.data.session.id,
     });
   } catch (err) {
-    console.log(err);
     showAlert('error', err);
   }
 };
