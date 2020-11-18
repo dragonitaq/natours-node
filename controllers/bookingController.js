@@ -59,7 +59,7 @@ const createBookingCheckout = catchAsync(async (session) => {
   // No idea why line_items changed to display_items after session object returned.
   const price = session.amount_total / 100;
   console.log(tourId, userId, price);
-  await Booking.create({ tourId, userId, price });
+  await Booking.create({ tour: tourId, user: userId, price });
 });
 
 exports.webhookCheckout = (req, res, next) => {
