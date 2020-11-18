@@ -24,7 +24,7 @@ const createSendToken = async (user, statusCode, res) => {
 
     /* ANCHOR Remember remove comment for real production mode.
     If we test run in production mode, we have to manually comment line below out. */
-    // if (process.env.NODE_ENV === 'production') cookieOptions.secure = true;
+    if (process.env.NODE_ENV === 'production') cookieOptions.secure = true;
 
     /* One domain can only have one unique cookie name on a browser, for us is "jwt". So every time we send a new one, the old one get replace, which is exactly what we wanted. */
     res.cookie('jwt', token, cookieOptions);
