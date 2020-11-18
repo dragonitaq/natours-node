@@ -1,5 +1,6 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const Tour = require('../models/tourModel');
+const User = require('../models/userModel');
 const Booking = require('../models/bookingModel');
 const APIFeatures = require('../utils/apiFeatures');
 const AppError = require('../utils/appError');
@@ -18,14 +19,13 @@ exports.getCheckoutSession = catchAsync(async (req, res, next) => {
     /* There are 3 mandatory fields which are payment method types, success & cancel url.
     Payment type is in an array because in future stripe will implement more methods. */
     payment_method_types: ['card'],
-    /* Upon payment success, we redirect them to our home route. Default is GET method so we can't set body details. For temporary solution before deploy website to public, we user query string to pass back data into our server.
-    BEWARE: This temporary method is NOT SECURE because any user who knows this url can inject their booking details without going through payment. */
-    success_url: `${req.protocol}://${req.get('host')}/?tour=${req.params.tourId}&user=${req.user.id}&price=${tour.price}`,
+    // Upon successful payment, we direct them to their booked tours page.
+    success_url: `${req.protocol}://${req.get('host')}/my-tours?alert=booking`,
     // Upon payment cancellation, we redirect them to the current tour page that they've cancelled. Default is GET method.
     cancel_url: `${req.protocol}://${req.get('host')}/tour/${tour.slug}`,
     // This will have Stripe auto fill in customer email in the checkout page
     customer_email: req.user.email,
-    /* We create our custom field (we can do that?!). We need it to specify tour ID because after payment success, stripe will return us the session object and this information that we attached to this session object will get back as well. Then we need to use this information(tour ID & user email) to create a new booking in our DB. */
+    /* We create our own custom field onto session object (Yes we can do that!). We need it to specify tour ID because after payment success, stripe will return us the same session object and this information that we attached to this session object will get back as well. Then we need to use this information(tour ID & user email) to create a new booking in our DB. */
     client_reference_id: req.params.tourId,
 
     // DETAILS ABOUT THE PRODUCT
@@ -35,7 +35,7 @@ exports.getCheckoutSession = catchAsync(async (req, res, next) => {
         name: `${tour.name} Tour`,
         description: tour.summary,
         /* This must be live images which the images must be hosted on a real website for public to gain access. */
-        images: [`https://www.natours.dev/img/tours/${tour.imageCover}`],
+        images: [`${req.protocol}://${req.get('host')}/img/tours/${tour.imageCover}`],
         // Stripe expect amount to be in cent unit base on your currently. They called it as zero-decimal currency.
         amount: tour.price * 100,
         currency: 'myr',
@@ -51,17 +51,30 @@ exports.getCheckoutSession = catchAsync(async (req, res, next) => {
   });
 });
 
-/* REVIEW Temporary NOT SECURE solution. */
-/* After payment, we direct user to success_url in which we all query string in place. Then we extract the query info and create a booking into DB. Then we redirect them to home route where there is not query string present. This function will check that there's no query string, then call next() and in the end, viewController.getOverview will render home page. */
-exports.createBookingCheckout = catchAsync(async (req, res, next) => {
-  const { tour, user, price } = req.query;
-  /* Any of the data is not present we call next() because our DB needs all of these. */
-  if (!tour || !user || !price) return next();
-  await Booking.create({ tour, user, price });
-
-  /* The whole success_url won't show up in user URL bar because we catch the request using this middleware then redirect into our home route using code below. What user actually only see is the response-redirected address in URL bar. */
-  res.redirect(req.originalUrl.split('?')[0]);
+const createBookingCheckout = catchAsync(async (session) => {
+  /* We then extract all the data we need from the session object that we configured earlier. */
+  const tourId = session.client_reference_id;
+  // We wrap await function because we just want the id property of the returned user doc.
+  const userId = (await User.findOne({ email: customer_email })).id;
+  // No idea why line_items changed to display_items after session object returned.
+  const price = session.display_items[0].amount / 100;
+  await Booking.create({ tourId, userId, price });
 });
+
+exports.webhookCheckout = (req, res, next) => {
+  const signature = req.headers['stripe-signature'];
+  let event;
+  try {
+    /* This is to use the signature from Stripe and combine with our webhook secret key to create an event which contains our session object which we will use to create new booking. */
+    event = stripe.webhooks.constructEvent(req.body, signature, process.env.STRIPE_WEBHOOK_SECRET);
+  } catch (err) {
+    return res.status(400).send(`Webhook error: ${err.message}`);
+  }
+  /* event.data.object is the same exact session object that we created in getCheckoutSession() function. */
+  if (event.type === 'checkout.session.completed') createBookingCheckout(event.data.object);
+
+  res.status(200).json({ received: true });
+};
 
 exports.createBooking = factory.createOne(Booking);
 exports.getBooking = factory.getOne(Booking);

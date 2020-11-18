@@ -5,7 +5,10 @@ const bookingController = require('../controllers/bookingController');
 
 const router = express.Router();
 
-router.get('/', bookingController.createBookingCheckout, authController.isLoggedIn, viewController.getOverview);
+/* we put a middleware here to check if there is query string with field of "alert". */
+router.use(viewController.alerts);
+
+router.get('/', authController.isLoggedIn, viewController.getOverview);
 router.get('/login', authController.isLoggedIn, viewController.getLoginForm);
 router.get('/tour/:slug', authController.isLoggedIn, viewController.getTour);
 router.get('/me', authController.protect, viewController.getAccount);

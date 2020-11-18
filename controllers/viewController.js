@@ -3,7 +3,15 @@ const User = require('../models/userModel');
 const Booking = require('../models/bookingModel');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
-const { findOne } = require('../models/tourModel');
+
+exports.alerts = (req, res, next) => {
+  // const alert = req.query.alert;
+  // Code below is same as above
+  const { alert } = req.query;
+  /* The reason we ask user to check back later because Stripe stated in their doc that webhook is called a little bit after the success URL is called. */
+  if (alert === 'booking') res.locals.alert = "Your booking was successful! Please check your email for confirmation. If your booking doesn't show up immediately, please check back later.";
+  next();
+};
 
 exports.getOverview = catchAsync(async (req, res) => {
   // STEP 1: Get tours

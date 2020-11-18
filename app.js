@@ -7,6 +7,7 @@ const userRouter = require('./routes/userRoutes');
 const reviewRouter = require('./routes/reviewRoute');
 const viewRouter = require('./routes/viewRoute');
 const bookingRouter = require('./routes/bookingRoute');
+const bookingController = require('./controllers/bookingController');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
@@ -58,7 +59,6 @@ app.options('*', cors());
 /* If we want to response to specify route for options request, we code like below. */
 // app.options('/api/v1/tours/:id', cors());
 
-
 /* ################### Set security HTTP headers ################## */
 
 /* In app.use(), we should only put in function but not executing it. In this case, helmet() will return a function that will be waiting to be called.
@@ -98,6 +98,11 @@ const limiter = rateLimit({
 });
 /* We have the option to specify which route has the limiter in place. */
 app.use('/api', limiter);
+
+/* ############################ Webhook ########################### */
+
+/* The reason we put this here because the session object come back from Stripe MUST be in raw form, cannot in JSON form. That is why we must put this before express.json() function. And we use express.raw() instead. */
+app.post('/webhook-checkout', express.raw({ type: 'application/json' }), bookingController.webhookCheckout);
 
 /* ########################## Body parser ######################### */
 

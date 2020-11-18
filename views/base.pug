@@ -16,7 +16,7 @@ html(lang='en')
 
   //- When we use "include" in parent pug, the parent includes its child file (_file and _footer). Which means copy code from child file into this parent file.
   //- When we use "block" in parent pug, the child includes its parent file (base). Which means copy code from this parent file into the child file (overview and tour).
-  body
+  body(data-alert=`${alert ? alert : ''}`) 
     // HEADER
     include _header
 
